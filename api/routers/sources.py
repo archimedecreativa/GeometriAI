@@ -699,6 +699,9 @@ async def get_source_status(source_id: str):
 
         # Check if this is a legacy source (no command)
         if not source.command:
+            logger.debug(
+                f"Source status check: source={source_id} has no command reference (legacy)"
+            )
             return SourceStatusResponse(
                 status=None,
                 message="Legacy source (completed before async processing)",
@@ -710,6 +713,18 @@ async def get_source_status(source_id: str):
         try:
             status = await source.get_status()
             processing_info = await source.get_processing_progress()
+            embedded_chunks = await source.get_embedded_chunks()
+
+            logger.info(
+                f"Source status check: source={source_id}, command={source.command}, "
+                f"status={status}, embedded_chunks={embedded_chunks}"
+            )
+
+            if status == "completed" and embedded_chunks == 0:
+                logger.warning(
+                    f"Source processing completed but source is still not embedded: "
+                    f"source={source_id}, command={source.command}, embedded_chunks=0"
+                )
 
             # Generate descriptive message based on status
             if status == "completed":

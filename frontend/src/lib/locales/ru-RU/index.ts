@@ -31,7 +31,7 @@ export const ruRU = {
     podcast: "Подкаст",
     quickActions: "Быстрые действия",
     quickActionsDesc: "Навигация, поиск, запрос, тема",
-    appName: "Open Notebook",
+    appName: "Geometri AI",
     add: "Добавить",
     remove: "Удалить",
     confirm: "Подтвердить",

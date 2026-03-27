@@ -339,7 +339,10 @@ async def embed_source_command(input_data: EmbedSourceInput) -> EmbedSourceOutpu
     start_time = time.time()
 
     try:
-        logger.info(f"Starting embedding for source: {input_data.source_id}")
+        cmd_id = get_command_id(input_data)
+        logger.info(
+            f"Starting embed_source command={cmd_id} for source={input_data.source_id}"
+        )
 
         # 1. Load source
         source = await Source.get(input_data.source_id)
@@ -378,7 +381,6 @@ async def embed_source_command(input_data: EmbedSourceInput) -> EmbedSourceOutpu
             raise ValueError("No chunks created after splitting text")
 
         # 5. Generate embeddings for all chunks in batches
-        cmd_id = get_command_id(input_data)
         logger.debug(f"Generating embeddings for {total_chunks} chunks")
         embeddings = await generate_embeddings(chunks, command_id=cmd_id)
 
@@ -403,10 +405,28 @@ async def embed_source_command(input_data: EmbedSourceInput) -> EmbedSourceOutpu
         logger.debug(f"Inserting {len(records)} source_embedding records")
         await repo_insert("source_embedding", records)
 
+        # Verify persisted records count to quickly diagnose indexing mismatches
+        persisted_count_result = await repo_query(
+            "SELECT VALUE count() as count FROM source_embedding WHERE source = $source_id GROUP ALL",
+            {"source_id": ensure_record_id(input_data.source_id)},
+        )
+        persisted_count = (
+            persisted_count_result[0] if persisted_count_result else 0
+        )
+        logger.info(
+            f"Embedding persistence check for source {input_data.source_id} "
+            f"(command={cmd_id}): inserted={len(records)}, persisted={persisted_count}"
+        )
+        if persisted_count == 0:
+            logger.warning(
+                f"No persisted source_embedding rows after embed_source for "
+                f"source={input_data.source_id} (command={cmd_id})"
+            )
+
         processing_time = time.time() - start_time
         logger.info(
-            f"Successfully embedded source {input_data.source_id}: "
-            f"{total_chunks} chunks in {processing_time:.2f}s"
+            f"Successfully embedded source {input_data.source_id} "
+            f"(command={cmd_id}): {total_chunks} chunks in {processing_time:.2f}s"
         )
 
         return EmbedSourceOutput(

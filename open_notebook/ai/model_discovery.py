@@ -233,7 +233,7 @@ async def discover_google_models() -> List[DiscoveredModel]:
     try:
         async with httpx.AsyncClient() as client:
             # Build URL without logging the key to avoid exposure
-            url = "https://generativelanguage.googleapis.com/v1/models"
+            url = "https://generativelanguage.googleapis.com/v1beta/models"
             headers = {"X-Goog-Api-Key": api_key}
             response = await client.get(url, headers=headers, timeout=30.0)
             response.raise_for_status()

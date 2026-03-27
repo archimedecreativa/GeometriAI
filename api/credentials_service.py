@@ -590,7 +590,7 @@ async def discover_with_config(provider: str, config: dict) -> List[dict]:
             headers = {"X-Goog-Api-Key": api_key} if api_key else {}
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    "https://generativelanguage.googleapis.com/v1/models",
+                    "https://generativelanguage.googleapis.com/v1beta/models",
                     headers=headers,
                     timeout=30.0,
                 )

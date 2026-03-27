@@ -111,18 +111,30 @@ async def save_source(state: SourceState) -> dict:
         source.title = content_state.title
 
     await source.save()
+    logger.info(
+        f"Saved source content for {source.id}: "
+        f"title='{source.title}', content_chars={len(source.full_text or '')}"
+    )
 
     # NOTE: Notebook associations are created by the API immediately for UI responsiveness
     # No need to create them here to avoid duplicate edges
 
     if state["embed"]:
         if source.full_text and source.full_text.strip():
-            logger.debug("Embedding content for vector search")
-            await source.vectorize()
+            logger.info(f"Submitting embed_source command for source {source.id}")
+            embed_command_id = await source.vectorize()
+            logger.info(
+                f"Submitted embed_source command for source {source.id}: "
+                f"embed_command_id={embed_command_id}"
+            )
         else:
             logger.warning(
                 f"Source {source.id} has no text content to embed, skipping vectorization"
             )
+    else:
+        logger.info(
+            f"Embedding disabled for source {source.id} (embed flag is false)"
+        )
 
     return {"source": source}
 

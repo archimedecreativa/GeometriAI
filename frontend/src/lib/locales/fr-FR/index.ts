@@ -31,7 +31,7 @@ export const frFR = {
     podcast: "Podcast",
     quickActions: "Actions rapides",
     quickActionsDesc: "Navigation, recherche, poser une question, thème",
-    appName: "Open Notebook",
+    appName: "Geometri AI",
     add: "Ajouter",
     remove: "Retirer",
     confirm: "Confirmer",

@@ -65,9 +65,16 @@ async def process_source_command(
     Process source content using the source_graph workflow
     """
     start_time = time.time()
+    command_id = (
+        str(input_data.execution_context.command_id)
+        if input_data.execution_context
+        else "unknown"
+    )
 
     try:
-        logger.info(f"Starting source processing for source: {input_data.source_id}")
+        logger.info(
+            f"Starting process_source command={command_id} for source={input_data.source_id}"
+        )
         logger.info(f"Notebook IDs: {input_data.notebook_ids}")
         logger.info(f"Transformations: {input_data.transformations}")
         logger.info(f"Embed: {input_data.embed}")
@@ -96,7 +103,9 @@ async def process_source_command(
         )
         await source.save()
 
-        logger.info(f"Updated source {source.id} with command reference")
+        logger.info(
+            f"Updated source {source.id} with process command reference command:{command_id}"
+        )
 
         # 3. Process source with all notebooks
         logger.info(f"Processing source with {len(input_data.notebook_ids)} notebooks")
@@ -123,12 +132,20 @@ async def process_source_command(
 
         processing_time = time.time() - start_time
         embed_status = "submitted" if input_data.embed else "skipped"
+        active_command_ref = str(processed_source.command) if processed_source.command else None
         logger.info(
-            f"Successfully processed source: {processed_source.id} in {processing_time:.2f}s"
+            f"Successfully processed source: {processed_source.id} "
+            f"(process_command={command_id}, active_command_ref={active_command_ref}) "
+            f"in {processing_time:.2f}s"
         )
         logger.info(
             f"Created {insights_created} insights, embedding {embed_status}"
         )
+        if input_data.embed and not active_command_ref:
+            logger.warning(
+                f"Source {processed_source.id} requested embedding but has no command reference "
+                f"after processing (process_command={command_id})"
+            )
 
         return SourceProcessingOutput(
             success=True,
@@ -141,7 +158,10 @@ async def process_source_command(
     except ValueError as e:
         # Validation errors are permanent failures - don't retry
         processing_time = time.time() - start_time
-        logger.error(f"Source processing failed: {e}")
+        logger.error(
+            f"Source processing failed for source={input_data.source_id} "
+            f"(process_command={command_id}): {e}"
+        )
         return SourceProcessingOutput(
             success=False,
             source_id=input_data.source_id,
@@ -151,7 +171,8 @@ async def process_source_command(
     except Exception as e:
         # Transient failure - will be retried (surreal-commands logs final failure)
         logger.debug(
-            f"Transient error processing source {input_data.source_id}: {e}"
+            f"Transient error processing source {input_data.source_id} "
+            f"(process_command={command_id}): {e}"
         )
         raise
 

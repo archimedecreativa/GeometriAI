@@ -21,7 +21,7 @@ from open_notebook.domain.credential import Credential
 TEST_MODELS = {
     "openai": ("gpt-3.5-turbo", "language"),
     "anthropic": ("claude-3-haiku-20240307", "language"),
-    "google": ("gemini-2.0-flash", "language"),
+    "google": ("gemini-2.5-flash", "language"),
     "groq": ("llama-3.1-8b-instant", "language"),
     "mistral": ("mistral-small-latest", "language"),
     "deepseek": ("deepseek-chat", "language"),
@@ -287,8 +287,11 @@ async def test_provider_connection(
             return False, "Connection error - check network/endpoint"
         elif "timeout" in error_msg.lower():
             return False, "Connection timed out - check network/endpoint"
-        elif "not found" in error_msg.lower() and "model" in error_msg.lower():
-            # Model not found but auth worked - this is actually a success for connectivity
+        elif (
+            ("not found" in error_msg.lower() and "model" in error_msg.lower())
+            or "not_found" in error_msg.lower()
+        ):
+            # Model not found but auth worked - treat as connectivity success.
             return True, "API key valid (test model not available)"
         elif provider == "ollama" and "connection refused" in error_msg.lower():
             return False, "Ollama not running - check if Ollama server is started"

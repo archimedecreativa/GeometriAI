@@ -65,6 +65,12 @@ export function LanguageToggle({ iconOnly = false }: LanguageToggleProps) {
           <span>{t.common.japanese}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
+          onClick={() => setLanguage('it-IT')}
+          className={currentLang === 'it-IT' || currentLang.startsWith('it') ? 'bg-accent' : ''}
+        >
+          <span>Italiano</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
           onClick={() => setLanguage('fr-FR')}
           className={currentLang === 'fr-FR' || currentLang.startsWith('fr') ? 'bg-accent' : ''}
         >
