@@ -111,7 +111,11 @@ async def list_credentials(
 
     except Exception as e:
         logger.error(f"Error listing credentials: {e}")
-        raise HTTPException(status_code=500, detail="Failed to list credentials")
+        # Include exception type/message (non-secret) to help debugging UI 500s.
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list credentials: {type(e).__name__}: {str(e)}",
+        )
 
 
 @router.get("/by-provider/{provider}", response_model=List[CredentialResponse])
@@ -126,7 +130,10 @@ async def list_credentials_by_provider(provider: str):
         return result
     except Exception as e:
         logger.error(f"Error listing credentials for {provider}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to list credentials for provider")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list credentials for provider {provider}: {type(e).__name__}: {str(e)}",
+        )
 
 
 @router.post("", response_model=CredentialResponse, status_code=201)

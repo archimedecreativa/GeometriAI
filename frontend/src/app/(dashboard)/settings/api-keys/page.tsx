@@ -1272,13 +1272,24 @@ export default function ApiKeysPage() {
   const { t } = useTranslation()
 
   // Data
-  const { data: credentials, isLoading: credentialsLoading } = useCredentials()
-  const { data: models, isLoading: modelsLoading } = useModels()
-  const { data: defaults, isLoading: defaultsLoading } = useModelDefaults()
+  const {
+    data: credentials,
+    isLoading: credentialsLoading,
+    error: credentialsError,
+  } = useCredentials()
+  const { data: models, isLoading: modelsLoading, error: modelsError } = useModels()
+  const { data: defaults, isLoading: defaultsLoading, error: defaultsError } = useModelDefaults()
   const { data: credentialStatus } = useCredentialStatus()
   const { data: envStatus } = useEnvStatus()
 
   const encryptionReady = credentialStatus?.encryption_configured ?? true
+
+  const credentialsErrorMessage =
+    credentialsError instanceof Error ? credentialsError.message : String(credentialsError ?? '')
+  const modelsErrorMessage = modelsError instanceof Error ? modelsError.message : String(modelsError ?? '')
+  const defaultsErrorMessage =
+    defaultsError instanceof Error ? defaultsError.message : String(defaultsError ?? '')
+  const hasFetchError = !!(credentialsError || modelsError || defaultsError)
 
   // Group credentials by provider
   const credentialsByProvider = useMemo(() => {
@@ -1323,6 +1334,23 @@ export default function ApiKeysPage() {
       <AppShell>
         <div className="flex items-center justify-center min-h-[60vh]">
           <LoadingSpinner size="lg" />
+        </div>
+      </AppShell>
+    )
+  }
+
+  if (hasFetchError) {
+    // Show a real error instead of rendering empty provider lists as "not configured".
+    return (
+      <AppShell>
+        <div className="p-6 space-y-3">
+          <Alert className="border-destructive/50 bg-destructive/10">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-destructive">{t.common.error}</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              <div>{credentialsErrorMessage || modelsErrorMessage || defaultsErrorMessage || 'Unknown error'}</div>
+            </AlertDescription>
+          </Alert>
         </div>
       </AppShell>
     )

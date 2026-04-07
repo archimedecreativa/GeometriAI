@@ -261,7 +261,9 @@ class ModelManager:
                 f"The configured model_id '{model_id}' may have been deleted or misconfigured. "
                 f"Please go to Settings → Models and reconfigure the default model."
             )
-            return None
+            # Preserve the original error so callers can surface a meaningful
+            # message instead of a generic "No model configured..." wrapper.
+            raise
 
 
 model_manager = ModelManager()

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import traceback
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,7 @@ from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import ChatSession, Note, Notebook, Source
 from open_notebook.exceptions import (
     NotFoundError,
+    OpenNotebookError,
 )
 from open_notebook.graphs.chat import graph as chat_graph
 from open_notebook.utils.graph_utils import get_session_message_count
@@ -359,7 +361,16 @@ async def execute_chat(request: ExecuteChatRequest):
         # Prepare state for execution
         state_values = current_state.values if current_state else {}
         state_values["messages"] = state_values.get("messages", [])
-        state_values["context"] = request.context
+        # The chat graph prompt template expects a string-ish `context` value.
+        # Frontend passes a structured object (sources/notes); coerce it to a
+        # stable string representation to avoid template/render issues.
+        if isinstance(request.context, str):
+            state_values["context"] = request.context
+        else:
+            try:
+                state_values["context"] = json.dumps(request.context, ensure_ascii=False)
+            except Exception:
+                state_values["context"] = str(request.context)
         state_values["model_override"] = model_override
 
         # Add user message to state
@@ -397,6 +408,10 @@ async def execute_chat(request: ExecuteChatRequest):
         return ExecuteChatResponse(session_id=request.session_id, messages=messages)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Session not found")
+    except OpenNotebookError:
+        # Preserve typed OpenNotebook errors so FastAPI can map them to the correct
+        # HTTP status code (e.g. ConfigurationError -> 422) via api/main.py handlers.
+        raise
     except Exception as e:
         # Log detailed error with context for debugging
         logger.error(

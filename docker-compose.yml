@@ -20,7 +20,9 @@ services:
     environment:
       # REQUIRED: Change this to your own secret string
       # This encrypts your API keys in the database
-      - OPEN_NOTEBOOK_ENCRYPTION_KEY=change-me-to-a-secret-string
+      # Must match the encryption key used to encrypt existing credentials in SurrealDB.
+      # Keep in sync with the project's `.env` used by local/dev runs.
+      - OPEN_NOTEBOOK_ENCRYPTION_KEY=dev-local-open-notebook-encryption-key-2026
 
       # Database connection (default values - no need to change)
       - SURREAL_URL=ws://surrealdb:8000/rpc

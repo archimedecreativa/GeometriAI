@@ -124,8 +124,14 @@ class Credential(ObjectModel):
                 if isinstance(instance.api_key, SecretStr)
                 else instance.api_key
             )
-            decrypted = decrypt_value(raw)
-            object.__setattr__(instance, "api_key", SecretStr(decrypted))
+            try:
+                decrypted = decrypt_value(raw)
+                object.__setattr__(instance, "api_key", SecretStr(decrypted))
+            except Exception as e:
+                # If encryption key is missing/rotated, don't fail the whole
+                # request (e.g. listing credentials). Return metadata only.
+                logger.warning(f"Failed to decrypt api_key for credential {id}: {e}")
+                object.__setattr__(instance, "api_key", None)
         return instance
 
     @classmethod
@@ -139,8 +145,14 @@ class Credential(ObjectModel):
                     if isinstance(instance.api_key, SecretStr)
                     else instance.api_key
                 )
-                decrypted = decrypt_value(raw)
-                object.__setattr__(instance, "api_key", SecretStr(decrypted))
+                try:
+                    decrypted = decrypt_value(raw)
+                    object.__setattr__(instance, "api_key", SecretStr(decrypted))
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to decrypt api_key for credential {instance.id}: {e}"
+                    )
+                    object.__setattr__(instance, "api_key", None)
         return instances
 
     async def get_linked_models(self) -> list:
@@ -192,8 +204,15 @@ class Credential(ObjectModel):
         """Create a Credential from a database row, decrypting api_key."""
         api_key_val = row.get("api_key")
         if api_key_val and isinstance(api_key_val, str):
-            decrypted = decrypt_value(api_key_val)
-            row["api_key"] = SecretStr(decrypted)
+            try:
+                decrypted = decrypt_value(api_key_val)
+                row["api_key"] = SecretStr(decrypted)
+            except Exception as e:
+                # Keep credential record visible even if decryption fails
+                logger.warning(
+                    f"Failed to decrypt api_key in _from_db_row for credential row: {e}"
+                )
+                row["api_key"] = None
         elif api_key_val is None:
             row["api_key"] = None
         return cls(**row)
